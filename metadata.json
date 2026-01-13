@@ -1,0 +1,5 @@
+{
+  "name": "Quản lý hàng hóa",
+  "description": "Hệ thống quản lý vận tải nội bộ, số hóa quy trình ghi nhận đơn hàng, đối soát cước và báo cáo doanh thu giữa các trạm HT, PA, SG.",
+  "requestFramePermissions": []
+}
