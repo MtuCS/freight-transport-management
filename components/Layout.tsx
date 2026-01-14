@@ -74,7 +74,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
 
         {/* Promotional Image Area */}
         <div className="px-3 pb-4">
-          <img src="/img/christmas.jpg" alt="Promotional" className="w-full h-120 object-cover rounded-xl shadow-md" />
+          <img src="/img/christmas.jpg" alt="Promotional" className="w-full h-40 object-cover rounded-xl shadow-md" />
         </div>
 
         <div className="p-4 bg-slate-950/50 border-t border-slate-800">
