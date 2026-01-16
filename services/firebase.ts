@@ -14,8 +14,13 @@ const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig);
 
-
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
-console.log("firebase projectId =", firebaseConfig.projectId);
+// Security: Chỉ log ở development mode
+if (import.meta.env.DEV) {
+  console.log("firebase projectId =", firebaseConfig.projectId);
+}
+if (import.meta.env.DEV) {
+  console.log("firebase projectId =", firebaseConfig.projectId);
+}

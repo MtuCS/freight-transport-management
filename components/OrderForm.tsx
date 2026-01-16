@@ -38,8 +38,22 @@ const OrderForm: React.FC<OrderFormProps> = ({ user }) => {
         setIsLoading(true);
         const existing = await getOrderById(id);
         if (existing) {
-          if (user.role !== 'ADMIN' && !isEditable(existing)) {
-            alert('Không thể chỉnh sửa đơn hàng cũ (quá 24h). Vui lòng liên hệ quản lý.');
+          // Security: Kiểm tra quyền chỉnh sửa
+          // - ADMIN: sửa được tất cả
+          // - MANAGER: sửa được tất cả
+          // - STAFF: chỉ sửa được order của chính mình VÀ trong ngày
+          const isOwner = existing.createdById === user.uid;
+          const canEdit = 
+            user.role === 'ADMIN' || 
+            user.role === 'MANAGER' ||
+            (user.role === 'STAFF' && isOwner && isEditable(existing));
+          
+          if (!canEdit) {
+            if (!isOwner && user.role === 'STAFF') {
+              alert('Bạn không có quyền chỉnh sửa đơn hàng của người khác.');
+            } else {
+              alert('Không thể chỉnh sửa đơn hàng cũ (quá 24h). Vui lòng liên hệ quản lý.');
+            }
             navigate('/orders');
             return;
           }
@@ -51,7 +65,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ user }) => {
       }
     };
     fetchOrder();
-  }, [id, isEditMode, navigate, user.role]);
+  }, [id, isEditMode, navigate, user.role, user.uid]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -90,6 +104,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ user }) => {
       cost: formData.cost || 0,
       paymentStatus: formData.paymentStatus as PaymentStatus,
       createdBy: isEditMode ? (formData.createdBy as string) : user.name,
+      createdById: isEditMode ? (formData.createdById as string) : user.uid, // Security: Lưu UID để kiểm tra ownership
       history: isEditMode && formData.history ? [...formData.history, { date: now, action: 'Updated', user: user.name }] : []
     };
 

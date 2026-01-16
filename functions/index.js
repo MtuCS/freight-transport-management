@@ -27,22 +27,47 @@ exports.registerEmployee = functions
 
     const { email, password, name, username, role } = data;
     
+    // === INPUT VALIDATION (Security: H3) ===
+    const VALID_ROLES = ['STAFF', 'MANAGER', 'ADMIN'];
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    if (!email || typeof email !== 'string' || !EMAIL_REGEX.test(email.trim())) {
+      throw new functions.https.HttpsError('invalid-argument', 'Email không hợp lệ');
+    }
+    
+    if (!password || typeof password !== 'string' || password.length < 8) {
+      throw new functions.https.HttpsError('invalid-argument', 'Mật khẩu phải có ít nhất 8 ký tự');
+    }
+    
+    if (!name || typeof name !== 'string' || name.trim().length < 2) {
+      throw new functions.https.HttpsError('invalid-argument', 'Tên phải có ít nhất 2 ký tự');
+    }
+    
+    if (!role || !VALID_ROLES.includes(role)) {
+      throw new functions.https.HttpsError('invalid-argument', 'Role không hợp lệ. Chỉ chấp nhận: STAFF, MANAGER, ADMIN');
+    }
+    
+    // Sanitize inputs
+    const sanitizedEmail = email.toLowerCase().trim();
+    const sanitizedName = name.trim().substring(0, 100);
+    const sanitizedUsername = (username || '').trim().substring(0, 50);
+    
     try {
       // Tạo user trong Auth
       const userRecord = await admin.auth().createUser({ 
-        email, 
+        email: sanitizedEmail, 
         password, 
-        displayName: name 
+        displayName: sanitizedName 
       });
       
-      // Tạo profile trong Firestore
+      // Tạo profile trong Firestore (dùng sanitized values)
       await admin.firestore()
         .collection('accounts')
         .doc(userRecord.uid)
         .set({
-          email, 
-          name, 
-          username, 
+          email: sanitizedEmail, 
+          name: sanitizedName, 
+          username: sanitizedUsername, 
           role, 
           createdAt: admin.firestore.FieldValue.serverTimestamp()
         });
