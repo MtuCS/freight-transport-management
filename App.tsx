@@ -76,7 +76,7 @@ const App: React.FC = () => {
     <Router>
       <Layout user={user} onLogout={handleLogout}>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<Dashboard user={user} />} />
           <Route path="/create" element={<OrderForm user={user} />} />
           <Route path="/edit/:id" element={<OrderForm user={user} />} />
           <Route path="/orders" element={<OrderList user={user} />} />

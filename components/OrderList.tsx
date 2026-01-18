@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Order, PaymentStatus, Station, User } from '../types';
 import { getOrders, formatCurrency, formatDate, isEditable } from '../services/dataService';
 import { Search, Filter, Edit, Plus, ArrowRight, X, Loader2 } from 'lucide-react';
@@ -9,15 +9,17 @@ interface OrderListProps {
 }
 
 const OrderList: React.FC<OrderListProps> = ({ user }) => {
+  const [searchParams] = useSearchParams();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Filters
+  // Filters - Initialize from URL params if available
   const [searchTerm, setSearchTerm] = useState('');
-  const [stationFilter, setStationFilter] = useState<string>('ALL');
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
-  const [dateFilter, setDateFilter] = useState<string>('ALL'); // Simple day filter: ALL, TODAY, YESTERDAY
+  const [senderStationFilter, setSenderStationFilter] = useState<string>(searchParams.get('senderStation') || searchParams.get('station') || 'ALL');
+  const [receiverStationFilter, setReceiverStationFilter] = useState<string>(searchParams.get('receiverStation') || 'ALL');
+  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('status') || 'ALL');
+  const [dateFilter, setDateFilter] = useState<string>(searchParams.get('date') || 'ALL');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -28,6 +30,19 @@ const OrderList: React.FC<OrderListProps> = ({ user }) => {
     };
     fetchData();
   }, []);
+
+  // Update filters when URL params change
+  useEffect(() => {
+    const senderStation = searchParams.get('senderStation') || searchParams.get('station');
+    const receiverStation = searchParams.get('receiverStation');
+    const status = searchParams.get('status');
+    const date = searchParams.get('date');
+    
+    if (senderStation) setSenderStationFilter(senderStation);
+    if (receiverStation) setReceiverStationFilter(receiverStation);
+    if (status) setStatusFilter(status);
+    if (date) setDateFilter(date);
+  }, [searchParams]);
 
   useEffect(() => {
     let result = orders;
@@ -43,9 +58,14 @@ const OrderList: React.FC<OrderListProps> = ({ user }) => {
       );
     }
 
-    // Filter by Station (From or To)
-    if (stationFilter !== 'ALL') {
-      result = result.filter(o => o.senderStation === stationFilter || o.receiverStation === stationFilter);
+    // Filter by Sender Station
+    if (senderStationFilter !== 'ALL') {
+      result = result.filter(o => o.senderStation === senderStationFilter);
+    }
+
+    // Filter by Receiver Station
+    if (receiverStationFilter !== 'ALL') {
+      result = result.filter(o => o.receiverStation === receiverStationFilter);
     }
 
     // Filter by Payment Status
@@ -57,25 +77,32 @@ const OrderList: React.FC<OrderListProps> = ({ user }) => {
     if (dateFilter !== 'ALL') {
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
       
       result = result.filter(o => {
         const orderTime = new Date(o.createdAt).getTime();
-        if (dateFilter === 'TODAY') {
-          return orderTime >= today;
+        switch (dateFilter) {
+          case 'TODAY':
+            return orderTime >= today;
+          case 'YESTERDAY':
+            return orderTime >= today - 86400000 && orderTime < today;
+          case 'WEEK':
+            return orderTime >= today - 7 * 86400000;
+          case 'MONTH':
+            return orderTime >= startOfMonth;
+          default:
+            return true;
         }
-        if (dateFilter === 'YESTERDAY') {
-          return orderTime >= today - 86400000 && orderTime < today;
-        }
-        return true;
       });
     }
 
     setFilteredOrders(result);
-  }, [orders, searchTerm, stationFilter, statusFilter, dateFilter]);
+  }, [orders, searchTerm, senderStationFilter, receiverStationFilter, statusFilter, dateFilter]);
 
   const clearFilters = () => {
     setSearchTerm('');
-    setStationFilter('ALL');
+    setSenderStationFilter('ALL');
+    setReceiverStationFilter('ALL');
     setStatusFilter('ALL');
     setDateFilter('ALL');
   };
@@ -118,15 +145,26 @@ const OrderList: React.FC<OrderListProps> = ({ user }) => {
             <option value="ALL">Tất cả ngày</option>
             <option value="TODAY">Hôm nay</option>
             <option value="YESTERDAY">Hôm qua</option>
+            <option value="WEEK">7 ngày qua</option>
+            <option value="MONTH">Tháng này</option>
           </select>
 
           <select 
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 min-w-[100px]"
-            value={stationFilter}
-            onChange={(e) => setStationFilter(e.target.value)}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 min-w-[110px]"
+            value={senderStationFilter}
+            onChange={(e) => setSenderStationFilter(e.target.value)}
           >
-            <option value="ALL">Tất cả trạm</option>
-            {Object.values(Station).map(s => <option key={s} value={s}>{s}</option>)}
+            <option value="ALL">Trạm gửi</option>
+            {Object.values(Station).map(s => <option key={s} value={s}>Gửi: {s}</option>)}
+          </select>
+
+          <select 
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 min-w-[110px]"
+            value={receiverStationFilter}
+            onChange={(e) => setReceiverStationFilter(e.target.value)}
+          >
+            <option value="ALL">Trạm nhận</option>
+            {Object.values(Station).map(s => <option key={s} value={s}>Nhận: {s}</option>)}
           </select>
 
           <select 
