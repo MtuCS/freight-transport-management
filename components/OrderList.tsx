@@ -234,7 +234,11 @@ const OrderList: React.FC<OrderListProps> = ({ user }) => {
               <tbody className="divide-y divide-gray-100">
                 {filteredOrders.map(order => (
                   <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-gray-900">{order.code}</td>
+                    <td className="px-6 py-4 font-medium">
+                      <Link to={`/orders/${order.id}`} className="text-accent hover:text-blue-700 hover:underline">
+                        {order.code}
+                      </Link>
+                    </td>
                     <td className="px-6 py-4 text-gray-500">{formatDate(order.createdAt)}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1">
@@ -297,7 +301,9 @@ const OrderList: React.FC<OrderListProps> = ({ user }) => {
               <div key={order.id} className="p-4 hover:bg-gray-50">
                 <div className="flex justify-between items-start mb-2">
                   <div>
-                    <span className="font-bold text-gray-900 mr-2">{order.code}</span>
+                    <Link to={`/orders/${order.id}`} className="font-bold text-accent hover:text-blue-700 hover:underline mr-2">
+                      {order.code}
+                    </Link>
                     <span className="text-xs text-gray-500">{formatDate(order.createdAt).split(',')[1]}</span>
                   </div>
                   <span className={`text-xs font-bold px-2 py-1 rounded ${

@@ -4,6 +4,7 @@ import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import OrderForm from './components/OrderForm';
 import OrderList from './components/OrderList';
+import OrderDetail from './components/OrderDetail';
 import Login from './components/Login';
 import Reports from './components/Reports';
 import EmployeeManagement from './components/EmployeeManagement';
@@ -80,6 +81,7 @@ const App: React.FC = () => {
           <Route path="/create" element={<OrderForm user={user} />} />
           <Route path="/edit/:id" element={<OrderForm user={user} />} />
           <Route path="/orders" element={<OrderList user={user} />} />
+          <Route path="/orders/:id" element={<OrderDetail user={user} />} />
           <Route path="/reports" element={<Reports user={user} />} />
           {user.role === Role.ADMIN && (
             <Route path="/employees" element={<EmployeeManagement currentUser={user} />} />

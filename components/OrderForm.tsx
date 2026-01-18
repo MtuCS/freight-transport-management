@@ -200,10 +200,10 @@ const OrderForm: React.FC<OrderFormProps> = ({ user }) => {
     setFieldErrors({});
 
     // Kiểm tra trường bắt buộc
-    if (!formData.senderName || !formData.senderPhone || !formData.cost) {
+    if (!formData.receiverName || !formData.receiverPhone || !formData.cost) {
       setError('Vui lòng điền tên người gửi, SĐT và cước phí.');
-      if (!formData.senderPhone && senderPhoneRef.current) {
-        senderPhoneRef.current.focus();
+      if (!formData.receiverPhone && receiverPhoneRef.current) {
+        receiverPhoneRef.current.focus();
       }
       if (!formData.cost && costRef.current) {
         costRef.current.focus();
@@ -212,12 +212,12 @@ const OrderForm: React.FC<OrderFormProps> = ({ user }) => {
     }
 
     // Kiểm tra định dạng số điện thoại người gửi
-    if (!isVietnamesePhoneNumberValid(formData.senderPhone)) {
-      const error = 'Số điện thoại người gửi không hợp lệ. Vui lòng nhập số Việt Nam (ví dụ: 0946169794, +84946169794).';
-      setFieldErrors(prev => ({ ...prev, senderPhone: error }));
-      senderPhoneRef.current?.focus();
-      return;
-    }
+    // if (!isVietnamesePhoneNumberValid(formData.senderPhone)) {
+    //   const error = 'Số điện thoại người gửi không hợp lệ. Vui lòng nhập số Việt Nam (ví dụ: 0946169794, +84946169794).';
+    //   setFieldErrors(prev => ({ ...prev, senderPhone: error }));
+    //   senderPhoneRef.current?.focus();
+    //   return;
+    // }
 
     // Kiểm tra định dạng số điện thoại người nhận (nếu có)
     if (formData.receiverPhone && !isVietnamesePhoneNumberValid(formData.receiverPhone)) {
@@ -248,6 +248,26 @@ const OrderForm: React.FC<OrderFormProps> = ({ user }) => {
       paymentStatus: formData.paymentStatus as PaymentStatus,
       createdBy: isEditMode ? (formData.createdBy as string) : user.name,
       createdById: isEditMode ? (formData.createdById as string) : user.uid, // Security: Lưu UID để kiểm tra ownership
+      paymentHistory: isEditMode && formData.paymentHistory
+        ? (formData.paymentStatus !== (formData as any).oldPaymentStatus)
+          ? [
+              ...formData.paymentHistory,
+              {
+                date: now,
+                status: formData.paymentStatus as PaymentStatus,
+                changedBy: user.name,
+                changedById: user.uid,
+                note: ''
+              }
+            ]
+          : formData.paymentHistory
+        : [{
+            date: now,
+            status: formData.paymentStatus as PaymentStatus,
+            changedBy: user.name,
+            changedById: user.uid,
+            note: 'Tạo phiếu'
+          }],
       history: isEditMode && formData.history ? [...formData.history, { date: now, action: 'Updated', user: user.name }] : []
     };
 
@@ -337,7 +357,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ user }) => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại </label>
                 <input 
                   ref={senderPhoneRef}
                   type="tel" 
@@ -348,7 +368,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ user }) => {
                     fieldErrors.senderPhone ? 'border-red-500 bg-red-50' : ''
                   }`}
                   placeholder="09xxx..."
-                  required
+                  
                 />
                 {fieldErrors.senderPhone && (
                   <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
@@ -388,6 +408,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ user }) => {
                     fieldErrors.receiverPhone ? 'border-red-500 bg-red-50' : ''
                   }`}
                   placeholder="09xxx..."
+                  required
                 />
                 {fieldErrors.receiverPhone && (
                   <p className="text-red-600 text-xs mt-1 flex items-center gap-1">

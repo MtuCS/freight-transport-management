@@ -34,6 +34,14 @@ export interface OrderHistory {
   user: string;
 }
 
+export interface PaymentRecord {
+  date: string;           // ISO timestamp
+  status: PaymentStatus;  // PAID / UNPAID
+  changedBy: string;      // Tên nhân viên thay đổi
+  changedById: string;    // UID của nhân viên
+  note?: string;          // Ghi chú (VD: "Thu tiền mặt", "Chuyển khoản")
+}
+
 export interface Order {
   id: string;
   code: string; 
@@ -54,6 +62,7 @@ export interface Order {
   
   cost: number;
   paymentStatus: PaymentStatus;
+  paymentHistory: PaymentRecord[];  // Lịch sử thu cước
   
   createdBy: string;
   createdById?: string; // UID của tài khoản tạo đơn
