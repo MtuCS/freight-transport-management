@@ -21,6 +21,7 @@ export interface Account {
   username: string; // Tên hiển thị/ID cũ
   name: string;
   role: Role;
+  station?: Station; // Bắt buộc với STAFF, optional với ADMIN/MANAGER
 }
 
 export interface User extends Account {

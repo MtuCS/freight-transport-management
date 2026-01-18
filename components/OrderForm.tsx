@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { User, Station, PaymentStatus, Order } from '../types';
 import { saveOrder, getOrderById, generateOrderCode, isEditable } from '../services/dataService';
@@ -8,16 +8,48 @@ interface OrderFormProps {
   user: User;
 }
 
+// Format số với dấu . ngăn cách hàng ngàn
+const formatCurrencyDisplay = (num: number): string => {
+  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+};
+
+// Parse chuỗi từ input: loại bỏ dấu . và chuyển thành number
+const parseCurrencyInput = (str: string): number => {
+  const cleanStr = str.replace(/\./g, '');
+  return cleanStr === '' ? 0 : parseInt(cleanStr, 10);
+};
+
+// Validate số điện thoại Việt Nam (hỗ trợ +84, 84, 0 và các mạng chính)
+const isVietnamesePhoneNumberValid = (number: string): boolean => {
+  return /((\+?84)|0)(3|5|7|8|9)\d{8}\b/.test(number.trim());
+};
+
 const OrderForm: React.FC<OrderFormProps> = ({ user }) => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditMode = !!id;
 
+  // Lấy danh sách trạm nhận (loại trừ trạm hiện tại của user)
+  const availableReceiverStations = Object.values(Station).filter(s => s !== user.station);
+  const defaultReceiverStation = availableReceiverStations[0] || Station.SG;
+
+  // Refs để focus và select text
+  const senderPhoneRef = useRef<HTMLInputElement>(null);
+  const receiverPhoneRef = useRef<HTMLInputElement>(null);
+  const costRef = useRef<HTMLInputElement>(null);
+
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Field-level error states
+  const [fieldErrors, setFieldErrors] = useState<{
+    senderPhone?: string;
+    receiverPhone?: string;
+    cost?: string;
+  }>({});
   const [formData, setFormData] = useState<Partial<Order>>({
     senderStation: user.station,
-    receiverStation: Station.SG,
+    receiverStation: defaultReceiverStation,
     paymentStatus: PaymentStatus.UNPAID,
     quantity: 1,
     cost: 0,
@@ -69,18 +101,129 @@ const OrderForm: React.FC<OrderFormProps> = ({ user }) => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    
+    // Xử lý đặc biệt cho trường cost (cước phí)
+    if (name === 'cost') {
+      const numValue = parseCurrencyInput(value);
+      setFormData(prev => ({
+        ...prev,
+        [name]: numValue
+      }));
+      
+      // Kiểm tra cước phí khi nhập
+      if (value.trim() === '') {
+        setFieldErrors(prev => ({
+          ...prev,
+          cost: 'Vui lòng nhập cước phí'
+        }));
+      } else if (numValue <= 0) {
+        setFieldErrors(prev => ({
+          ...prev,
+          cost: 'Cước phí phải lớn hơn 0'
+        }));
+      } else {
+        setFieldErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors.cost;
+          return newErrors;
+        });
+      }
+      return;
+    }
+    
+    // Kiểm tra số điện thoại người gửi
+    if (name === 'senderPhone') {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+      
+      if (value.trim() === '') {
+        setFieldErrors(prev => ({
+          ...prev,
+          senderPhone: 'Vui lòng nhập số điện thoại'
+        }));
+      } else if (!isVietnamesePhoneNumberValid(value)) {
+        setFieldErrors(prev => ({
+          ...prev,
+          senderPhone: 'Số điện thoại không hợp lệ (VD: 0946169794, +84946169794)'
+        }));
+        // Focus khi validation fail
+        setTimeout(() => {
+          senderPhoneRef.current?.focus();
+        }, 0);
+      } else {
+        setFieldErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors.senderPhone;
+          return newErrors;
+        });
+      }
+      return;
+    }
+    
+    // Kiểm tra số điện thoại người nhận
+    if (name === 'receiverPhone') {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+      
+      if (value.trim() !== '' && !isVietnamesePhoneNumberValid(value)) {
+        setFieldErrors(prev => ({
+          ...prev,
+          receiverPhone: 'Số điện thoại không hợp lệ (VD: 0946169794, +84946169794)'
+        }));
+        // Focus khi validation fail
+        setTimeout(() => {
+          receiverPhoneRef.current?.focus();
+        }, 0);
+      } else {
+        setFieldErrors(prev => {
+          const newErrors = { ...prev };
+          delete newErrors.receiverPhone;
+          return newErrors;
+        });
+      }
+      return;
+    }
+    
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'quantity' || name === 'cost' ? Number(value) : value
+      [name]: name === 'quantity' ? Number(value) : value
     }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
 
+    // Kiểm tra trường bắt buộc
     if (!formData.senderName || !formData.senderPhone || !formData.cost) {
       setError('Vui lòng điền tên người gửi, SĐT và cước phí.');
+      if (!formData.senderPhone && senderPhoneRef.current) {
+        senderPhoneRef.current.focus();
+      }
+      if (!formData.cost && costRef.current) {
+        costRef.current.focus();
+      }
+      return;
+    }
+
+    // Kiểm tra định dạng số điện thoại người gửi
+    if (!isVietnamesePhoneNumberValid(formData.senderPhone)) {
+      const error = 'Số điện thoại người gửi không hợp lệ. Vui lòng nhập số Việt Nam (ví dụ: 0946169794, +84946169794).';
+      setFieldErrors(prev => ({ ...prev, senderPhone: error }));
+      senderPhoneRef.current?.focus();
+      return;
+    }
+
+    // Kiểm tra định dạng số điện thoại người nhận (nếu có)
+    if (formData.receiverPhone && !isVietnamesePhoneNumberValid(formData.receiverPhone)) {
+      const error = 'Số điện thoại người nhận không hợp lệ. Vui lòng nhập số Việt Nam (ví dụ: 0946169794, +84946169794).';
+      setFieldErrors(prev => ({ ...prev, receiverPhone: error }));
+      receiverPhoneRef.current?.focus();
       return;
     }
 
@@ -152,10 +295,16 @@ const OrderForm: React.FC<OrderFormProps> = ({ user }) => {
                   name="senderStation" 
                   value={formData.senderStation} 
                   onChange={handleChange}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-accent focus:ring focus:ring-accent focus:ring-opacity-50 h-10 border px-3"
+                  disabled={user.role === 'STAFF'}
+                  className={`w-full rounded-md border-gray-300 shadow-sm focus:border-accent focus:ring focus:ring-accent focus:ring-opacity-50 h-10 border px-3 ${
+                    user.role === 'STAFF' ? 'bg-gray-100 cursor-not-allowed' : ''
+                  }`}
                 >
                   {Object.values(Station).map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
+                {user.role === 'STAFF' && (
+                  <p className="text-xs text-gray-500 mt-1">Trạm được gán cho tài khoản của bạn</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Trạm nhận</label>
@@ -165,7 +314,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ user }) => {
                   onChange={handleChange}
                   className="w-full rounded-md border-gray-300 shadow-sm focus:border-accent focus:ring focus:ring-accent focus:ring-opacity-50 h-10 border px-3"
                 >
-                  {Object.values(Station).map(s => <option key={s} value={s}>{s}</option>)}
+                  {availableReceiverStations.map(s => <option key={s} value={s}>{s}</option>)}
                 </select>
               </div>
             </div>
@@ -176,7 +325,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ user }) => {
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Người gửi</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tên người gửi <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tên người gửi </label>
                 <input 
                   type="text" 
                   name="senderName" 
@@ -184,20 +333,29 @@ const OrderForm: React.FC<OrderFormProps> = ({ user }) => {
                   onChange={handleChange}
                   className="w-full rounded-md border-gray-300 shadow-sm focus:border-accent focus:ring focus:ring-accent focus:ring-opacity-50 h-10 border px-3"
                   placeholder="Nguyễn Văn A"
-                  required
+                  // required
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại <span className="text-red-500">*</span></label>
                 <input 
+                  ref={senderPhoneRef}
                   type="tel" 
                   name="senderPhone" 
                   value={formData.senderPhone} 
                   onChange={handleChange}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-accent focus:ring focus:ring-accent focus:ring-opacity-50 h-10 border px-3"
+                  className={`w-full rounded-md border-gray-300 shadow-sm focus:border-accent focus:ring focus:ring-accent focus:ring-opacity-50 h-10 border px-3 ${
+                    fieldErrors.senderPhone ? 'border-red-500 bg-red-50' : ''
+                  }`}
                   placeholder="09xxx..."
                   required
                 />
+                {fieldErrors.senderPhone && (
+                  <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
+                    <AlertTriangle size={14} />
+                    {fieldErrors.senderPhone}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -207,7 +365,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ user }) => {
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">Người nhận</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tên người nhận</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tên người nhận <span className="text-red-500">*</span></label>
                 <input 
                   type="text" 
                   name="receiverName" 
@@ -215,18 +373,28 @@ const OrderForm: React.FC<OrderFormProps> = ({ user }) => {
                   onChange={handleChange}
                   className="w-full rounded-md border-gray-300 shadow-sm focus:border-accent focus:ring focus:ring-accent focus:ring-opacity-50 h-10 border px-3"
                   placeholder="Trần Thị B"
+                  required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Số điện thoại <span className="text-red-500">*</span></label>
                 <input 
+                  ref={receiverPhoneRef}
                   type="tel" 
                   name="receiverPhone" 
                   value={formData.receiverPhone} 
                   onChange={handleChange}
-                  className="w-full rounded-md border-gray-300 shadow-sm focus:border-accent focus:ring focus:ring-accent focus:ring-opacity-50 h-10 border px-3"
+                  className={`w-full rounded-md border-gray-300 shadow-sm focus:border-accent focus:ring focus:ring-accent focus:ring-opacity-50 h-10 border px-3 ${
+                    fieldErrors.receiverPhone ? 'border-red-500 bg-red-50' : ''
+                  }`}
                   placeholder="09xxx..."
                 />
+                {fieldErrors.receiverPhone && (
+                  <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
+                    <AlertTriangle size={14} />
+                    {fieldErrors.receiverPhone}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -256,18 +424,18 @@ const OrderForm: React.FC<OrderFormProps> = ({ user }) => {
                       onChange={handleChange}
                       list="goodsTypes"
                       className="w-full rounded-md border-gray-300 shadow-sm focus:border-accent focus:ring focus:ring-accent focus:ring-opacity-50 h-10 border px-3"
-                      placeholder="VD: Quần áo, Thực phẩm..."
+                      placeholder="VD: Bao, Kiện, Thùng giấy..."
                     />
                     <datalist id="goodsTypes">
-                      <option value="Quần áo" />
-                      <option value="Thực phẩm" />
-                      <option value="Linh kiện điện tử" />
+                      <option value="Bao" />
+                      <option value="Kiện" />
+                      <option value="Thùng giấy" />
+                      <option value="Thùng xốp" />
                       <option value="Hồ sơ/Giấy tờ" />
-                      <option value="Hàng cồng kềnh" />
                     </datalist>
                 </div>
                  <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Số lượng/Kiện</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Số lượng</label>
                    <input 
                       type="number" 
                       name="quantity" 
@@ -281,14 +449,22 @@ const OrderForm: React.FC<OrderFormProps> = ({ user }) => {
                  <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Cước phí (VNĐ) <span className="text-red-500">*</span></label>
                    <input 
-                      type="number" 
+                      ref={costRef}
+                      type="text" 
                       name="cost" 
-                      min="0"
-                      step="1000"
-                      value={formData.cost} 
+                      value={formatCurrencyDisplay(formData.cost as number)}
                       onChange={handleChange}
-                      className="w-full rounded-md border-gray-300 shadow-sm focus:border-accent focus:ring focus:ring-accent focus:ring-opacity-50 h-10 border px-3 font-bold text-gray-900"
+                      placeholder="0"
+                      className={`w-full rounded-md border-gray-300 shadow-sm focus:border-accent focus:ring focus:ring-accent focus:ring-opacity-50 h-10 border px-3 font-bold text-gray-900 ${
+                        fieldErrors.cost ? 'border-red-500 bg-red-50' : ''
+                      }`}
                     />
+                    {fieldErrors.cost && (
+                      <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
+                        <AlertTriangle size={14} />
+                        {fieldErrors.cost}
+                      </p>
+                    )}
                 </div>
                 
                 <div>

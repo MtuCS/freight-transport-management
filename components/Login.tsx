@@ -62,6 +62,16 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       return;
     }
 
+    // 4) Nếu là STAFF và có station được gán → đăng nhập trực tiếp
+    if (account.role === 'STAFF' && account.station) {
+      onLogin({
+        ...account,
+        station: account.station
+      });
+      return;
+    }
+
+    // 5) ADMIN/MANAGER → chọn trạm làm việc
     setTempAccount(account);
     setStep('STATION');
   } catch (err: any) {

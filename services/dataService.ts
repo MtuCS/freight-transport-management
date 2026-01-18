@@ -87,6 +87,7 @@ export async function getAccountByUid(uid: string): Promise<Account | null> {
       username: uid,           // tạm thời để uid (sau này đổi thành email)
       name: data.name,
       role: data.role,
+      station: data.station,   // Station được gán cho STAFF
       // nếu type Account còn field khác thì map thêm ở đây
     } as Account;
   } catch (error) {
