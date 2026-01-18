@@ -80,7 +80,7 @@ const App: React.FC = () => {
           <Route path="/create" element={<OrderForm user={user} />} />
           <Route path="/edit/:id" element={<OrderForm user={user} />} />
           <Route path="/orders" element={<OrderList user={user} />} />
-          <Route path="/reports" element={<Reports />} />
+          <Route path="/reports" element={<Reports user={user} />} />
           {user.role === Role.ADMIN && (
             <Route path="/employees" element={<EmployeeManagement currentUser={user} />} />
           )}

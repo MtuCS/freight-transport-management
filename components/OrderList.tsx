@@ -81,6 +81,12 @@ const OrderList: React.FC<OrderListProps> = ({ user }) => {
       
       result = result.filter(o => {
         const orderTime = new Date(o.createdAt).getTime();
+        
+        // Kiểm tra nếu là ngày cụ thể (format YYYY-MM-DD)
+        if (dateFilter.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          return o.createdAt.startsWith(dateFilter);
+        }
+        
         switch (dateFilter) {
           case 'TODAY':
             return orderTime >= today;
@@ -136,18 +142,31 @@ const OrderList: React.FC<OrderListProps> = ({ user }) => {
           />
         </div>
         
-        <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+        <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 items-center">
           <select 
             className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 min-w-[120px]"
-            value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
+            value={dateFilter.match(/^\d{4}-\d{2}-\d{2}$/) ? 'CUSTOM' : dateFilter}
+            onChange={(e) => {
+              if (e.target.value !== 'CUSTOM') {
+                setDateFilter(e.target.value);
+              }
+            }}
           >
             <option value="ALL">Tất cả ngày</option>
             <option value="TODAY">Hôm nay</option>
             <option value="YESTERDAY">Hôm qua</option>
             <option value="WEEK">7 ngày qua</option>
             <option value="MONTH">Tháng này</option>
+            <option value="CUSTOM" disabled>Chọn ngày...</option>
           </select>
+          
+          <input 
+            type="date" 
+            value={dateFilter.match(/^\d{4}-\d{2}-\d{2}$/) ? dateFilter : ''}
+            onChange={(e) => setDateFilter(e.target.value || 'ALL')}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 w-[140px]"
+            title="Chọn ngày cụ thể"
+          />
 
           <select 
             className="px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 min-w-[110px]"
@@ -205,7 +224,7 @@ const OrderList: React.FC<OrderListProps> = ({ user }) => {
                   <th className="px-6 py-3">Mã</th>
                   <th className="px-6 py-3">Ngày tạo</th>
                   <th className="px-6 py-3">Tuyến</th>
-                  <th className="px-6 py-3">Khách hàng</th>
+                  <th className="px-6 py-3">Người nhận</th>
                   <th className="px-6 py-3">Hàng hóa</th>
                   <th className="px-6 py-3 text-right">Cước phí</th>
                   <th className="px-6 py-3 text-center">TT Cước</th>
@@ -225,8 +244,8 @@ const OrderList: React.FC<OrderListProps> = ({ user }) => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900">{order.senderName}</div>
-                      <div className="text-xs text-gray-500">{order.senderPhone}</div>
+                      <div className="font-medium text-gray-900">{order.receiverName}</div>
+                      <div className="text-xs text-gray-500">{order.receiverPhone}</div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-gray-900">{order.goodsType}</div>
