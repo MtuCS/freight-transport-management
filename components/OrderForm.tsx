@@ -109,25 +109,12 @@ const OrderForm: React.FC<OrderFormProps> = ({ user }) => {
         ...prev,
         [name]: numValue
       }));
-      
-      // Kiểm tra cước phí khi nhập
-      if (value.trim() === '') {
-        setFieldErrors(prev => ({
-          ...prev,
-          cost: 'Vui lòng nhập cước phí'
-        }));
-      } else if (numValue <= 0) {
-        setFieldErrors(prev => ({
-          ...prev,
-          cost: 'Cước phí phải lớn hơn 0'
-        }));
-      } else {
-        setFieldErrors(prev => {
-          const newErrors = { ...prev };
-          delete newErrors.cost;
-          return newErrors;
-        });
-      }
+      // Cho phép cước phí = 0 hoặc bỏ trống
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.cost;
+        return newErrors;
+      });
       return;
     }
     
@@ -200,13 +187,10 @@ const OrderForm: React.FC<OrderFormProps> = ({ user }) => {
     setFieldErrors({});
 
     // Kiểm tra trường bắt buộc
-    if (!formData.receiverName || !formData.receiverPhone || !formData.cost) {
-      setError('Vui lòng điền tên người gửi, SĐT và cước phí.');
+    if (!formData.receiverName || !formData.receiverPhone) {
+      setError('Vui lòng điền tên người nhận và SĐT.');
       if (!formData.receiverPhone && receiverPhoneRef.current) {
         receiverPhoneRef.current.focus();
-      }
-      if (!formData.cost && costRef.current) {
-        costRef.current.focus();
       }
       return;
     }
@@ -468,7 +452,7 @@ const OrderForm: React.FC<OrderFormProps> = ({ user }) => {
                 </div>
                 
                  <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Cước phí (VNĐ) <span className="text-red-500">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Cước phí (VNĐ)</label>
                    <input 
                       ref={costRef}
                       type="text" 

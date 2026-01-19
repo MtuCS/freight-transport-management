@@ -15,6 +15,11 @@ export enum PaymentStatus {
   UNPAID = 'Chưa thu'
 }
 
+export enum DeliveryStatus {
+  PENDING = 'Chờ giao',
+  DELIVERED = 'Đã giao'
+}
+
 export interface Account {
   uid: string;
   email: string;
@@ -62,6 +67,7 @@ export interface Order {
   
   cost: number;
   paymentStatus: PaymentStatus;
+  deliveryStatus?: DeliveryStatus; // Trạng thái giao hàng
   paymentHistory: PaymentRecord[];  // Lịch sử thu cước
   
   createdBy: string;
