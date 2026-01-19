@@ -21,9 +21,9 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
   const isAdmin = user.role === Role.ADMIN;
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden font-sans">
+    <div className="flex h-screen bg-slate-50 overflow-hidden font-sans print:block print:h-auto print:overflow-visible print:bg-white">
       {/* Sidebar for Desktop */}
-      <aside className="hidden md:flex w-64 flex-col bg-slate-900 text-white transition-all duration-300 border-r border-slate-800">
+      <aside className="hidden md:flex w-64 flex-col bg-slate-900 text-white transition-all duration-300 border-r border-slate-800 no-print">
         <div className="flex items-center gap-3 p-6 border-b border-slate-800">
           <img src="/img/logo-removebg-preview.png" alt="Trang Hòa Logo" className="h-10 w-10 rounded-lg object-cover" />
           <div>
@@ -103,7 +103,7 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
       {/* Main Content */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Mobile Header */}
-        <header className="md:hidden flex items-center justify-between bg-slate-900 text-white p-4 shadow-xl z-20">
+        <header className="md:hidden flex items-center justify-between bg-slate-900 text-white p-4 shadow-xl z-20 no-print">
            <div className="flex items-center gap-2">
               <Truck className="h-5 w-5 text-blue-500" />
               <span className="font-black tracking-tight">TRANG HOA <span className="text-blue-500 ml-1">{user.station}</span></span>
@@ -114,12 +114,12 @@ const Layout: React.FC<LayoutProps> = ({ children, user, onLogout }) => {
         </header>
 
         {/* Content Body */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50">
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50 print:p-0 print:overflow-visible print:bg-white">
           {children}
         </main>
 
         {/* Mobile Bottom Nav */}
-        <nav className="md:hidden bg-white border-t border-slate-200 flex justify-around p-2 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20">
+        <nav className="md:hidden bg-white border-t border-slate-200 flex justify-around p-2 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20 no-print">
           <Link to="/" className={`flex flex-col items-center p-2 rounded-xl ${location.pathname === '/' ? 'text-blue-600' : 'text-slate-400'}`}>
             <LayoutDashboard size={20} />
             <span className="text-[10px] font-bold mt-1">Tổng quan</span>

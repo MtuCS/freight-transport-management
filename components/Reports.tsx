@@ -51,7 +51,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
   // Format cước phí ngắn gọn (50000 -> 50k)
   const formatShortCurrency = (amount: number) => {
     if (amount >= 1000) {
-      return Math.round(amount / 1000) + 'k';
+      return Math.round(amount / 1000) + 'K';
     }
     return amount.toString();
   };
@@ -199,7 +199,7 @@ const Reports: React.FC<ReportsProps> = ({ user }) => {
                     {order.paymentStatus === PaymentStatus.PAID ? 'Đ/T' : 'C/T'}
                   </td>
                   <td className="px-2 py-1.5 border border-gray-400">
-                    {order.paymentStatus === PaymentStatus.PAID && (
+                    {order.cost > 0 && (
                       <span className="font-medium">{formatShortCurrency(order.cost)}</span>
                     )}
                     {order.note && <span className="text-gray-600"> {order.note}</span>}

@@ -24,15 +24,52 @@
     </script>
     <style>
       @media print {
+        /* Ẩn các thành phần không cần thiết khi in */
         .no-print {
           display: none !important;
         }
         .print-only {
           display: block !important;
         }
+        
+        /* Reset layout khi in */
+        body {
+          background: white !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        
+        /* Đảm bảo nội dung in chiếm toàn bộ trang */
+        #root, #root > div {
+          display: block !important;
+          height: auto !important;
+          overflow: visible !important;
+          position: static !important;
+        }
+        
+        /* Tối ưu bảng in */
+        table {
+          page-break-inside: auto;
+        }
+        tr {
+          page-break-inside: avoid;
+          page-break-after: auto;
+        }
+        
+        /* Bỏ shadow, border radius khi in */
+        * {
+          box-shadow: none !important;
+        }
       }
+      
       .print-only {
         display: none;
+      }
+      
+      /* Print margin settings */
+      @page {
+        margin: 10mm;
+        size: A4;
       }
     </style>
   <script type="importmap">
